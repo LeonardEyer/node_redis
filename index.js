@@ -1014,6 +1014,33 @@ RedisClient.prototype.write = function (data) {
     this.pipeline_queue.push(data);
 };
 
+/**
+ * hgetMulti - Gets multiple inserts from hash table
+ *
+ * @param  {Array} keys The keys that will be read
+ * @return {type}      description
+ */
+RedisClient.prototype.hgetMulti = function (keys) {
+
+    let self = this
+    return new Promise(function(resolve, reject) {
+        if(!keys || !keys[0]) reject("Malformed")
+        // Container to hold our recieved objects
+        let data = {}
+        let itemsprocessed = 0
+        // Iterate over our keys
+        return keys.map(key => {
+            return self.hgetall(key, function (err, res) {
+                if(err) return reject(err)
+                itemsprocessed++
+                // key value pair to object
+                data[key] = res
+                if(itemsprocessed == keys.length) resolve(data)
+            })
+        })
+    })
+}
+
 Object.defineProperty(exports, 'debugMode', {
     get: function () {
         return this.debug_mode;
