@@ -12,6 +12,7 @@ var Parser = require('redis-parser');
 var commands = require('redis-commands');
 var debug = require('./lib/debug');
 var unifyOptions = require('./lib/createClient');
+var Promise = require('bluebird');
 var SUBSCRIBE_COMMANDS = {
     subscribe: true,
     unsubscribe: true,
@@ -1015,30 +1016,26 @@ RedisClient.prototype.write = function (data) {
 };
 
 /**
- * hgetMulti - Gets multiple inserts from hash table
+ * getMulti - Gets multiple inserts from key set
  *
  * @param  {Array} keys The keys that will be read
- * @return {type}      description
+ * @return {Object}      Key value pairs
  */
-RedisClient.prototype.hgetMulti = function (keys) {
-
+RedisClient.prototype.getMulti = function (keys) {
     let self = this
-    return new Promise(function(resolve, reject) {
-        if(!keys || !keys[0]) reject("Malformed")
-        // Container to hold our recieved objects
-        let data = {}
-        let itemsprocessed = 0
-        // Iterate over our keys
-        return keys.map(key => {
-            return self.hgetall(key, function (err, res) {
-                if(err) return reject(err)
-                itemsprocessed++
-                // key value pair to object
-                data[key] = res
-                if(itemsprocessed == keys.length) resolve(data)
-            })
-        })
+    return new Promise((resolve, reject) => {
+
+        return Promise.reduce(keys, (data, key) => {
+
+            return self.getAsync(key)
+                .then(res => {
+                    data[key] = res
+                    return data
+                })
+
+        }, {}).then(resolve)
     })
+   
 }
 
 Object.defineProperty(exports, 'debugMode', {
